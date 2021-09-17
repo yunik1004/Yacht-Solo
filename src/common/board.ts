@@ -5,25 +5,22 @@ export class Board {
     private readonly camera: THREE.PerspectiveCamera
     private readonly renderer: THREE.WebGLRenderer
 
-    private readonly cube: THREE.Mesh
+    private readonly dice: Dice
 
     constructor(width: number, height: number) {
         this.scene = new THREE.Scene()
         this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000)
+        this.camera.position.z = 5
         this.renderer = new THREE.WebGLRenderer()
         this.renderer.setSize(width, height)
         this.animate = this.animate.bind(this)
 
-        const geometry = new THREE.BoxGeometry(1, 1, 1)
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-        this.cube = new THREE.Mesh(geometry, material)
-        this.scene.add(this.cube)
-        this.camera.position.z = 5
+        this.dice = new Dice()
+        this.scene.add(this.dice.object)
     }
 
     update(): void {
-        this.cube.rotation.x += 0.01
-        this.cube.rotation.y += 0.01
+        this.dice.update()
     }
 
     resize(width: number, height: number): void {
@@ -40,5 +37,21 @@ export class Board {
         requestAnimationFrame(this.animate)
         this.update()
         this.renderer.render(this.scene, this.camera)
+    }
+}
+
+class Dice {
+    readonly object: THREE.Mesh
+
+    constructor() {
+        const geometry = new THREE.BoxGeometry(1, 1, 1)
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+
+        this.object = new THREE.Mesh(geometry, material)
+    }
+
+    update(): void {
+        this.object.rotation.x += 0.01
+        this.object.rotation.y += 0.01
     }
 }
