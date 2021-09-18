@@ -1,3 +1,4 @@
+import * as CANNON from 'cannon-es'
 import * as THREE from 'three'
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
@@ -5,6 +6,10 @@ import diceMTLURL from '../assets/dice.mtl?url'
 import diceOBJURL from '../assets/dice.obj?url'
 
 export class Board {
+    private readonly world: CANNON.World
+    private readonly timeStep: number
+    private lastCallTime: number
+
     private readonly scene: THREE.Scene
     private readonly camera: THREE.PerspectiveCamera
     private readonly renderer: THREE.WebGLRenderer
@@ -12,6 +17,12 @@ export class Board {
     private readonly dice: Dice
 
     constructor(width: number, height: number) {
+        this.world = new CANNON.World({
+            gravity: new CANNON.Vec3(0, -9.82, 0),
+        })
+        this.timeStep = 1 / 60 // seconds
+        this.lastCallTime = -1
+
         this.scene = new THREE.Scene()
         this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000)
         this.camera.position.z = 5
@@ -45,6 +56,16 @@ export class Board {
 
     animate(): void {
         requestAnimationFrame(this.animate)
+
+        const time = performance.now() / 1000 // seconds
+        if (this.lastCallTime < 0) {
+            this.world.step(this.timeStep)
+        } else {
+            const dt = time - this.lastCallTime
+            this.world.step(this.timeStep, dt)
+        }
+        this.lastCallTime = time
+
         this.update()
         this.renderer.render(this.scene, this.camera)
     }
