@@ -18,7 +18,7 @@ export class Board {
 
     constructor(width: number, height: number) {
         this.world = new CANNON.World({
-            gravity: new CANNON.Vec3(0, -9.82, 0),
+            gravity: new CANNON.Vec3(0, 0, -9.82),
         })
         this.timeStep = 1 / 60 // seconds
         this.lastCallTime = -1
@@ -30,6 +30,7 @@ export class Board {
         this.renderer.setSize(width, height)
         this.animate = this.animate.bind(this)
 
+        // Lights
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.4)
         this.scene.add(ambientLight)
 
@@ -37,7 +38,22 @@ export class Board {
         pointLight.position.set(-5, 0, 5)
         this.scene.add(pointLight)
 
-        this.dice = new Dice(this.scene)
+        // Ground
+        const groundBody = new CANNON.Body({
+            type: CANNON.Body.STATIC,
+            shape: new CANNON.Plane()
+        })
+        groundBody.position.set(0, 0, -5)
+        this.world.addBody(groundBody)
+
+        // Additional objects
+        this.dice = new Dice(this.scene, this.world)
+    }
+
+    drag(start_x: number, start_y: number, end_x: number, end_y: number): void {
+        const topPoint = new CANNON.Vec3(0, 0, 1)
+        const impulse = new CANNON.Vec3((end_x - start_x) * this.timeStep, -(end_y - start_y) * this.timeStep, 0)
+        this.dice.boxBody.applyImpulse(impulse, topPoint)
     }
 
     update(): void {
@@ -73,9 +89,11 @@ export class Board {
 
 class Dice {
     object: THREE.Group
+    boxBody: CANNON.Body
 
-    constructor(scene: THREE.Scene) {
+    constructor(scene: THREE.Scene, world: CANNON.World) {
         this.object = new THREE.Group()
+        this.boxBody = new CANNON.Body()
 
         const mtlLoader = new MTLLoader()
         mtlLoader.load(diceMTLURL, (materials) => {
@@ -86,6 +104,11 @@ class Dice {
             objLoader.load(diceOBJURL, (object) => {
                 scene.add(object)
                 this.object = object
+
+                const halfExtents = new CANNON.Vec3(1, 1, 1)
+                const boxShape = new CANNON.Box(halfExtents)
+                this.boxBody = new CANNON.Body({ mass: 1, shape: boxShape })
+                world.addBody(this.boxBody)
             }, (xhr) => { }, (error) => {
                 alert("Failed to load the dice object.")
             })
@@ -93,7 +116,10 @@ class Dice {
     }
 
     update(): void {
-        this.object.rotation.x += 0.01
-        this.object.rotation.y += 0.01
+        //this.object.position.copy(this.boxBody.position)
+        this.object.position.set(this.boxBody.position.x, this.boxBody.position.y, this.boxBody.position.z)
+
+        //this.object.quaternion.copy(this.boxBody.quaternion)
+        this.object.quaternion.set(this.boxBody.quaternion.x, this.boxBody.quaternion.y, this.boxBody.quaternion.z, this.boxBody.quaternion.w)
     }
 }
